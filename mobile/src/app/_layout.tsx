@@ -32,6 +32,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: "Recipe Taker", headerLargeTitle: true }} />
         <Stack.Screen name="extract" options={{ title: "Reading video", headerBackTitle: "Back" }} />
         <Stack.Screen name="recipe/[id]" options={{ title: "", headerBackTitle: "Recipes" }} />
+        <Stack.Screen name="share" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: "Settings", presentation: "modal" }} />
       </Stack>
     </ShareIntentProvider>

@@ -2,7 +2,10 @@ import { Platform } from "react-native";
 import { getSetting } from "./storage";
 import type { ExtractResponse } from "./types";
 
-export const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000";
+// On the web build served by the backend itself, the API is on the same origin.
+export const DEFAULT_API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  (Platform.OS === "web" && typeof window !== "undefined" ? window.location.origin : "http://localhost:8000");
 export const DEFAULT_APP_TOKEN = process.env.EXPO_PUBLIC_APP_TOKEN ?? "";
 
 async function config() {

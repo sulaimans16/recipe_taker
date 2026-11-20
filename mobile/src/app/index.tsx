@@ -59,9 +59,14 @@ export default function Home() {
   };
 
   const paste = async () => {
-    const text = await Clipboard.getStringAsync();
+    let text = "";
+    try {
+      text = await Clipboard.getStringAsync();
+    } catch {
+      // Browsers may block clipboard access.
+    }
     if (findUrl(text)) submit(text);
-    else setError("Your clipboard doesn't contain a link.");
+    else setError("Couldn't find a link on your clipboard. Paste it into the box above.");
   };
 
   const pickVideo = async () => {
@@ -133,7 +138,9 @@ export default function Home() {
         <Text style={s.empty}>
           {videos.length
             ? "No recipes match that search."
-            : "No recipes yet. On Instagram or YouTube, tap Share and pick Recipe Taker."}
+            : Platform.OS === "web"
+              ? "No recipes yet. Paste a Reel or Short link above to get started."
+              : "No recipes yet. On Instagram or YouTube, tap Share and pick Recipe Taker."}
         </Text>
       }
       renderItem={({ item }) => <VideoCard v={item} />}

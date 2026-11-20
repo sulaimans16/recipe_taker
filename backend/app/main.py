@@ -159,3 +159,23 @@ async def extract_upload(
         return _respond(src, result, url)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+# ---- Web app ---------------------------------------------------------------
+# If the exported web build is present (see the root Dockerfile), serve it from the
+# same server so the website and API share one address. API routes above win because
+# they're registered first; every other GET falls back to the single-page app.
+WEB_DIST = Path(os.environ.get("WEB_DIST", Path(__file__).resolve().parent.parent / "web"))
+
+if (WEB_DIST / "index.html").exists():
+    from fastapi.responses import FileResponse
+
+    _web_root = WEB_DIST.resolve()
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def web_app(path: str):
+        candidate = (_web_root / path).resolve()
+        if path and candidate.is_file() and _web_root in candidate.parents:
+            headers = {"Cache-Control": "public, max-age=31536000, immutable"} if path.startswith("_expo/") else None
+            return FileResponse(candidate, headers=headers)
+        return FileResponse(_web_root / "index.html", headers={"Cache-Control": "no-cache"})

@@ -5,8 +5,9 @@ Share an Instagram Reel or YouTube Short to the app (or paste its link, or uploa
 Google Gemini watches the video. It listens to the speech in any language, reads on-screen text, sees what goes into the pan, and also reads the post caption.
 
 ```
-mobile/   Expo (React Native) app for iOS + Android, with a share-sheet target
-backend/  FastAPI server: downloads the video (yt-dlp) and asks Gemini for structured recipes
+mobile/   Expo (React Native) app: iOS, Android and the web version, from one codebase
+backend/  FastAPI server: downloads the video (yt-dlp), asks Gemini for structured recipes, and serves the website
+Dockerfile  Website + API in one container
 ```
 
 ## 1. Run the backend
@@ -46,7 +47,22 @@ Instagram often blocks anonymous downloads, especially from cloud servers. If yo
 
 YouTube is read directly by Gemini from the URL, so it doesn't need a download.
 
-## 2. Run the app
+## 2. Web version
+
+The same app runs in a browser. Recipes are saved in that browser.
+
+**Deploy the website and API together** (Render, Fly.io, Railway, Cloud Run…) with the root `Dockerfile`:
+```bash
+docker build -t recipe-taker .
+docker run -p 8000:8000 -e GEMINI_API_KEY=your-key recipe-taker
+# open http://localhost:8000
+```
+
+**Share from Android without the native app:** open the site in Chrome, use the menu to **Add to Home screen / Install**. "Recipe Taker" then shows up in Android's share sheet (Web Share Target). iPhone browsers don't support sharing into websites, so on iPhone paste the link or use the native app.
+
+**Developing the web UI:** run the backend on port 8000, then `cd mobile && npx expo start --web`.
+
+## 3. Run the phone app
 
 The share-sheet target is native code, so the app needs a **development build**. Expo Go won't work.
 
@@ -70,8 +86,6 @@ npx eas-cli@latest build --profile development --platform ios
 On iOS, select your Apple team for both the `RecipeTaker` and `ShareExtension` targets. The app uses the App Group `group.com.recipetaker.app`. If you change the bundle identifier in `app.json`, the group changes to match.
 
 You can also change the server address in the app itself, under **Settings**.
-
-Browser preview of the UI (no share sheet): `npx expo start --web`
 
 ## How to use
 - **Share:** in Instagram or YouTube, tap **Share**, then **Recipe Taker**. On Instagram you may need to tap **More** or "…" the first time.

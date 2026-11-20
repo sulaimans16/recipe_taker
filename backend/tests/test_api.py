@@ -134,3 +134,24 @@ def test_schema_is_json_serializable():
     from app.schema import ExtractionResult
 
     json.dumps(ExtractionResult.model_json_schema())
+
+
+def test_serves_web_app(tmp_path, monkeypatch):
+    import importlib
+
+    (tmp_path / "index.html").write_text("<html>app</html>")
+    (tmp_path / "manifest.webmanifest").write_text("{}")
+    monkeypatch.setenv("WEB_DIST", str(tmp_path))
+    mod = importlib.reload(main)
+    try:
+        c = TestClient(mod.app)
+        assert c.get("/").text == "<html>app</html>"
+        assert c.get("/recipe/abc").text == "<html>app</html>"  # SPA fallback
+        assert c.get("/extract?url=x").text == "<html>app</html>"  # GET page, not the POST API
+        assert c.get("/manifest.webmanifest").text == "{}"
+        assert c.get("/../../etc/passwd").text == "<html>app</html>"
+        assert c.get("/health").json() == {"ok": True}
+        assert c.post("/extract", json={"text": "no link"}).status_code == 400
+    finally:
+        monkeypatch.delenv("WEB_DIST")
+        importlib.reload(main)
