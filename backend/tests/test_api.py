@@ -161,3 +161,11 @@ def test_legacy_paths_still_work(fake):
     assert client.get("/health").json() == {"ok": True}
     assert client.get("/api/health").json() == {"ok": True}
     assert client.post("/extract", json={"url": "https://youtu.be/abcDEF12345"}).status_code == 200
+
+
+def test_timestamps_past_video_end_are_dropped():
+    data = json.loads(json.dumps(SAMPLE))
+    data["video_duration_sec"] = 30
+    data["recipes"][0]["steps"] = [{"text": "a", "timestamp_sec": 10}, {"text": "b", "timestamp_sec": 101}]
+    res = parse_result(json.dumps(data))
+    assert [s.timestamp_sec for s in res.recipes[0].steps] == [10, None]

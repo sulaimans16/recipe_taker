@@ -34,7 +34,8 @@ invent precise amounts. If you can confidently estimate from the visuals, put "a
 ("until golden", "until oil separates"). Add timestamp_sec when you can tell where the step starts.
 - Write the main recipe fields in the video's ORIGINAL language and script (e.g. Hindi in \
 Devanagari if spoken Hindi, Arabic in Arabic script). If the speaker mixes languages, use the \
-dominant one as they would write it.
+dominant one as they would write it. Do NOT add English glosses in brackets to the original fields (no "சிக்கன் (Chicken)"); the English version goes only in `english`.
+- Set video_duration_sec to the video's length, and never give a timestamp beyond it.
 - Then fill `english` with a faithful, natural English translation of the same recipe (keep dish \
 names recognisable, e.g. "Paneer Butter Masala"). If the original is English, set `english` to null.
 - If there's no recipe (e.g. a restaurant review or mukbang), return an empty recipes list and \
@@ -149,6 +150,12 @@ def parse_result(text: Optional[str]) -> ExtractionResult:
     except json.JSONDecodeError as err:
         raise GeminiError("Gemini returned malformed JSON.") from err
     result = ExtractionResult.model_validate(data)
+    limit = result.video_duration_sec
+    for recipe in result.recipes:
+        for steps in (recipe.steps, recipe.english.steps if recipe.english else []):
+            for step in steps:
+                if step.timestamp_sec is not None and (step.timestamp_sec < 0 or (limit and step.timestamp_sec > limit)):
+                    step.timestamp_sec = None
     for recipe in result.recipes:
         if recipe.english is not None and result.detected_language.lower().startswith("en"):
             recipe.english = None

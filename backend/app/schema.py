@@ -50,6 +50,7 @@ class ExtractionResult(BaseModel):
     detected_language: str = Field(
         description="Main spoken/written language of the video as a BCP-47 code, e.g. 'en', 'hi', 'ar', 'es'."
     )
+    video_duration_sec: Optional[float] = Field(default=None, description="Length of the video in seconds.")
     recipes: list[Recipe] = Field(
         default_factory=list,
         description="Every distinct recipe in the video (sauces, doughs and sides that are made from scratch count).",
