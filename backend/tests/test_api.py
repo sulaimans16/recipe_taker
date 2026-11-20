@@ -169,3 +169,14 @@ def test_timestamps_past_video_end_are_dropped():
     data["recipes"][0]["steps"] = [{"text": "a", "timestamp_sec": 10}, {"text": "b", "timestamp_sec": 101}]
     res = parse_result(json.dumps(data))
     assert [s.timestamp_sec for s in res.recipes[0].steps] == [10, None]
+
+
+def test_spa_shell_fallback(monkeypatch, tmp_path):
+    shell = tmp_path / "web_index.html"
+    shell.write_text("<html>shell</html>")
+    monkeypatch.setattr(main, "WEB_DIST", tmp_path / "missing")
+    monkeypatch.setattr(main, "WEB_INDEX", shell)
+    assert client.get("/").text == "<html>shell</html>"
+    assert client.get("/recipe/abc").text == "<html>shell</html>"
+    assert client.get("/api/nope").status_code == 404
+    assert client.get("/api/health").json()["ok"] is True

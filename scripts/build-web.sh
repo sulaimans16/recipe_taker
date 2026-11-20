@@ -5,3 +5,4 @@ cd "$(dirname "$0")/../mobile"
 npm ci
 rm -rf ../public
 npx expo export --platform web --output-dir ../public
+cp ../public/index.html ../backend/app/web_index.html

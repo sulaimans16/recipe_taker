@@ -168,22 +168,27 @@ async def extract_upload(
 
 
 # ---- Web app ---------------------------------------------------------------
-# If the exported web build is present (see the root Dockerfile), serve it from the
-# same server so the website and API share one address. API routes above win because
-# they're registered first; every other GET falls back to the single-page app.
+# Docker/local: serve the whole exported web build from WEB_DIST.
+# Vercel: static files come from public/ via the CDN; only page routes (/, /recipe/…)
+# reach this function, and get the SPA shell copied to app/web_index.html by
+# scripts/build-web.sh.
+from fastapi.responses import FileResponse, HTMLResponse  # noqa: E402
+
 WEB_DIST = Path(os.environ.get("WEB_DIST", Path(__file__).resolve().parent.parent / "web"))
+WEB_INDEX = Path(__file__).resolve().parent / "web_index.html"
 
-if (WEB_DIST / "index.html").exists():
-    from fastapi.responses import FileResponse
 
-    _web_root = WEB_DIST.resolve()
-
-    @app.get("/{path:path}", include_in_schema=False)
-    def web_app(path: str):
-        if path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="Not found")
-        candidate = (_web_root / path).resolve()
-        if path and candidate.is_file() and _web_root in candidate.parents:
+@app.get("/{path:path}", include_in_schema=False)
+def web_app(path: str):
+    if path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    root = WEB_DIST.resolve()
+    if (root / "index.html").exists():
+        candidate = (root / path).resolve()
+        if path and candidate.is_file() and root in candidate.parents:
             headers = {"Cache-Control": "public, max-age=31536000, immutable"} if path.startswith("_expo/") else None
             return FileResponse(candidate, headers=headers)
-        return FileResponse(_web_root / "index.html", headers={"Cache-Control": "no-cache"})
+        return FileResponse(root / "index.html", headers={"Cache-Control": "no-cache"})
+    if WEB_INDEX.exists():
+        return HTMLResponse(WEB_INDEX.read_text(), headers={"Cache-Control": "no-cache"})
+    raise HTTPException(status_code=404, detail="Not found")

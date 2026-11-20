@@ -5,11 +5,5 @@
     "backend/app/main.py": {
       "maxDuration": 300
     }
-  },
-  "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }
