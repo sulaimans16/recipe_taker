@@ -124,6 +124,10 @@ def _friendly_error(platform: str, err: Exception) -> SourceError:
             "Instagram blocked the download (it sometimes requires a login). "
             "Try again later, or save the reel to your phone and share the video file instead."
         )
+    if "not a bot" in low or "sign in to confirm" in low:
+        return SourceError(
+            "YouTube asked the server to sign in. Try again later, or share the video file instead."
+        )
     if "private" in low:
         return SourceError("This video is private, so it can't be read.")
     if "unsupported url" in low:
@@ -144,6 +148,27 @@ def _check_duration(src: VideoSource) -> None:
         raise SourceError(
             f"This video is {int(src.duration // 60)} min long; the limit is {MAX_DURATION_SEC // 60} min."
         )
+
+
+def youtube_oembed(url: str) -> Optional[VideoSource]:
+    """Title/author/thumbnail from YouTube's public oEmbed endpoint (no bot checks)."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    try:
+        q = urllib.parse.urlencode({"url": url, "format": "json"})
+        with urllib.request.urlopen(f"https://www.youtube.com/oembed?{q}", timeout=10) as r:
+            info = json.load(r)
+    except Exception:
+        return None
+    return VideoSource(
+        url=url,
+        platform="youtube",
+        title=info.get("title"),
+        author=info.get("author_name"),
+        thumbnail_url=info.get("thumbnail_url"),
+    )
 
 
 def fetch_metadata(url: str) -> VideoSource:

@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI(title="Recipe Taker API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT_SEC", 240))
+REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT_SEC", 300))
 _CACHE_MAX = 200
 _cache: "OrderedDict[str, ExtractResponse]" = OrderedDict()
 _extractor: Optional[RecipeExtractor] = None
@@ -74,12 +74,14 @@ def _extract_from_url(url: str, extractor: RecipeExtractor) -> ExtractResponse:
         except sources.SourceError as err:
             if "limit is" in str(err):
                 raise
-            log.warning("YouTube metadata failed: %s", err)
-            src = sources.VideoSource(url=canonical, platform="youtube")
+            log.warning("YouTube metadata via yt-dlp failed (%s); using oEmbed", str(err)[:120])
+            src = sources.youtube_oembed(canonical) or sources.VideoSource(url=canonical, platform="youtube")
         try:
             result = extractor.from_youtube_url(canonical, src.caption_context())
             return _respond(src, result, canonical)
         except GeminiError as err:
+            if "busy" in str(err):
+                raise  # downloading won't help when Gemini itself is overloaded
             log.warning("Direct YouTube read failed (%s); downloading instead", err)
 
     workdir = Path(tempfile.mkdtemp(prefix="recipe_"))

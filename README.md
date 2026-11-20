@@ -35,6 +35,8 @@ Tests: `pytest`
 | --- | --- |
 | `GEMINI_API_KEY` | Required |
 | `GEMINI_MODEL` | Override the model (default `gemini-3.8-flash`) |
+| `GEMINI_FALLBACK_MODEL` | Model to try when the main one is overloaded (default `gemini-3.5-flash`) |
+| `GEMINI_THINKING_LEVEL` | `LOW` by default (faster); `MEDIUM`/`HIGH` for tricky videos |
 | `APP_TOKEN` | If set, the app must send it as `X-App-Token`. Set this once the server is public, so others can't use your Gemini quota |
 | `YTDLP_COOKIES_FILE` | A `cookies.txt` from a logged-in browser. Helps when Instagram demands a login |
 
@@ -45,7 +47,9 @@ Instagram often blocks anonymous downloads, especially from cloud servers. If yo
 - set `YTDLP_COOKIES_FILE`, or run the backend from a home connection, or
 - save the reel to your phone and share the **video file** to Recipe Taker. File uploads always work.
 
-YouTube is read directly by Gemini from the URL, so it doesn't need a download.
+YouTube is read directly by Gemini from the URL, so it doesn't need a download (YouTube often blocks yt-dlp on cloud servers; the title and thumbnail then come from YouTube's oEmbed instead).
+
+Expect 30–120 seconds per video: Gemini writes the recipe twice (original language + English).
 
 ## 2. Web version
 

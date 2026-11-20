@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -10,7 +11,12 @@ from typing import Optional
 
 from .schema import ExtractionResult
 
+log = logging.getLogger("recipe_taker.gemini")
+
 DEFAULT_MODEL = "gemini-3.8-flash"
+# Used when the main model is overloaded (503) or rate-limited (429) after retries.
+DEFAULT_FALLBACK_MODEL = "gemini-3.5-flash"
+RETRYABLE_CODES = {429, 500, 503, 504}
 
 SYSTEM_PROMPT = """You are a meticulous chef's assistant. You watch short cooking videos \
 (Instagram Reels, YouTube Shorts, TikToks) and write down every recipe in them so someone \
@@ -49,6 +55,10 @@ class RecipeExtractor:
             raise GeminiError("GEMINI_API_KEY is not set on the server.")
         self.client = genai.Client(api_key=key)
         self.model = model or os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL
+        fallback = os.environ.get("GEMINI_FALLBACK_MODEL", DEFAULT_FALLBACK_MODEL)
+        self.models = [self.model] + ([fallback] if fallback and fallback != self.model else [])
+        self.thinking_level = os.environ.get("GEMINI_THINKING_LEVEL", "LOW")
+        self.retry_delays = (3, 8)
 
     # ---- public API -------------------------------------------------------
 
@@ -102,14 +112,29 @@ class RecipeExtractor:
             response_mime_type="application/json",
             response_json_schema=ExtractionResult.model_json_schema(),
             temperature=0.2,
+            media_resolution="MEDIA_RESOLUTION_LOW",
+            thinking_config=types.ThinkingConfig(thinking_level=self.thinking_level) if self.thinking_level else None,
         )
-        try:
-            resp = self.client.models.generate_content(
-                model=self.model, contents=[video_part, prompt], config=config
-            )
-        except Exception as err:
-            raise GeminiError(f"Gemini request failed: {err}") from err
+        resp = self._call_with_retry([video_part, prompt], config)
         return parse_result(resp.text)
+
+    def _call_with_retry(self, contents, config):
+        """Retry overloaded/rate-limited calls, then try the fallback model."""
+        last: Exception | None = None
+        for model in self.models:
+            for attempt in range(len(self.retry_delays) + 1):
+                try:
+                    return self.client.models.generate_content(model=model, contents=contents, config=config)
+                except Exception as err:
+                    last = err
+                    code = getattr(err, "code", None)
+                    if code not in RETRYABLE_CODES:
+                        raise GeminiError(f"Gemini request failed: {err}") from err
+                    if attempt < len(self.retry_delays):
+                        log.warning("Gemini %s on %s, retrying", code, model)
+                        time.sleep(self.retry_delays[attempt])
+            log.warning("Giving up on %s, trying next model", model)
+        raise GeminiError("Gemini is busy right now. Please try again in a minute.") from last
 
 
 def parse_result(text: Optional[str]) -> ExtractionResult:

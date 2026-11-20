@@ -107,7 +107,7 @@ export default function Extract() {
     <View style={s.center}>
       <ActivityIndicator size="large" color={t.accent} />
       <Text style={s.title}>{STAGES[stage]}</Text>
-      <Text style={s.body}>Short videos usually take 15–40 seconds.</Text>
+      <Text style={s.body}>This usually takes 30–90 seconds.</Text>
     </View>
   );
 }
