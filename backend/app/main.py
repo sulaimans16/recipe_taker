@@ -109,7 +109,8 @@ async def _run(fn, *args):
 @app.get("/api/health")
 @app.get("/health", include_in_schema=False)
 def health() -> dict:
-    return {"ok": True}
+    sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "")
+    return {"ok": True, **({"version": sha[:7]} if sha else {})}
 
 
 @app.post("/api/extract", response_model=ExtractResponse, dependencies=[Depends(check_token)])

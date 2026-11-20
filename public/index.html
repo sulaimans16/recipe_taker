@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Recipe Taker</title>
+    <meta name="description" content="Turn Instagram Reels and YouTube Shorts into written recipes." />
+    <meta name="theme-color" content="#D9480F" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Recipes" />
+    <style id="expo-reset">
+      html, body { height: 100%; }
+      body { overflow: hidden; background: #FBF7F2; }
+      @media (prefers-color-scheme: dark) { body { background: #16110E; } }
+      #root { display: flex; height: 100%; flex: 1; }
+    </style>
+  <link rel="icon" href="/favicon.ico"/></head>
+  <body>
+    <noscript>You need to enable JavaScript to run Recipe Taker.</noscript>
+    <div id="root"></div>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>
+  <script src="/_expo/static/js/web/__expo-metro-runtime-8c088df87a31e4e6accd81c554ec290d.js" defer></script><script src="/_expo/static/js/web/__common-254ab369fede8da352f9d53d47e026f1.js" defer></script><script src="/_expo/static/js/web/entry-406e698e66a163b66acffd173d73598a.js" defer></script>
+</body>
+</html>

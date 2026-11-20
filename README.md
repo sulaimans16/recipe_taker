@@ -66,6 +66,15 @@ docker run -p 8000:8000 -e GEMINI_API_KEY=your-key recipe-taker
 
 **Developing the web UI:** run the backend on port 8000, then `cd mobile && npx expo start --web`.
 
+### On Vercel
+Import the repo at vercel.com/new and add `GEMINI_API_KEY` and `APP_TOKEN` as environment variables. The API runs as a Python function (`/api/*`) and the website is served from `public/`.
+
+`public/` is the exported web app and is committed. After changing anything in `mobile/`, rebuild and commit it:
+```bash
+./scripts/build-web.sh
+```
+Video uploads are limited to 4.5 MB on Vercel; links work at any size.
+
 ## 3. Run the phone app
 
 The share-sheet target is native code, so the app needs a **development build**. Expo Go won't work.
