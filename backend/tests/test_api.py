@@ -67,7 +67,7 @@ client = TestClient(main.app)
 
 
 def test_youtube_direct(fake):
-    r = client.post("/extract", json={"text": "look https://youtube.com/shorts/abcDEF12345?si=x"})
+    r = client.post("/api/extract", json={"text": "look https://youtube.com/shorts/abcDEF12345?si=x"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["platform"] == "youtube"
@@ -78,21 +78,21 @@ def test_youtube_direct(fake):
 
 def test_youtube_falls_back_to_download(fake):
     fake.fail_youtube = True
-    r = client.post("/extract", json={"url": "https://youtu.be/abcDEF12345"})
+    r = client.post("/api/extract", json={"url": "https://youtu.be/abcDEF12345"})
     assert r.status_code == 200
     assert [c[0] for c in fake.calls] == ["youtube", "file"]
 
 
 def test_instagram_download_and_cache(fake):
-    r1 = client.post("/extract", json={"url": "https://www.instagram.com/reel/XYZ/?igsh=1"})
-    r2 = client.post("/extract", json={"url": "https://instagram.com/reel/XYZ"})
+    r1 = client.post("/api/extract", json={"url": "https://www.instagram.com/reel/XYZ/?igsh=1"})
+    r2 = client.post("/api/extract", json={"url": "https://instagram.com/reel/XYZ"})
     assert r1.status_code == r2.status_code == 200
     assert len(fake.calls) == 1  # second served from cache
     assert "2 cups flour" in fake.calls[0][2]
 
 
 def test_no_link(fake):
-    r = client.post("/extract", json={"text": "hello"})
+    r = client.post("/api/extract", json={"text": "hello"})
     assert r.status_code == 400
 
 
@@ -101,14 +101,14 @@ def test_source_error_is_422(fake, monkeypatch):
         raise sources.SourceError("Instagram blocked the download")
 
     monkeypatch.setattr(sources, "download_video", boom)
-    r = client.post("/extract", json={"url": "https://www.instagram.com/reel/ABC/"})
+    r = client.post("/api/extract", json={"url": "https://www.instagram.com/reel/ABC/"})
     assert r.status_code == 422
     assert "Instagram" in r.json()["detail"]
 
 
 def test_upload(fake):
     r = client.post(
-        "/extract/upload",
+        "/api/extract/upload",
         files={"file": ("clip.mov", b"\x00" * 100, "application/octet-stream")},
         data={"caption": "salt to taste"},
     )
@@ -120,8 +120,8 @@ def test_upload(fake):
 def test_token(fake, monkeypatch):
     monkeypatch.setenv("APP_TOKEN", "s3cret")
     url = {"url": "https://youtu.be/abcDEF12345"}
-    assert client.post("/extract", json=url).status_code == 401
-    assert client.post("/extract", json=url, headers={"X-App-Token": "s3cret"}).status_code == 200
+    assert client.post("/api/extract", json=url).status_code == 401
+    assert client.post("/api/extract", json=url, headers={"X-App-Token": "s3cret"}).status_code == 200
 
 
 def test_parse_result_strips_english_for_english_videos():
@@ -155,3 +155,9 @@ def test_serves_web_app(tmp_path, monkeypatch):
     finally:
         monkeypatch.delenv("WEB_DIST")
         importlib.reload(main)
+
+
+def test_legacy_paths_still_work(fake):
+    assert client.get("/health").json() == {"ok": True}
+    assert client.get("/api/health").json() == {"ok": True}
+    assert client.post("/extract", json={"url": "https://youtu.be/abcDEF12345"}).status_code == 200

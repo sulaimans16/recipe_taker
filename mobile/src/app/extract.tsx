@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { extractFromFile, extractFromLink, findUrl, type LocalVideo } from "../lib/api";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ApiError, extractFromFile, extractFromLink, findUrl, type LocalVideo } from "../lib/api";
 import { pendingUpload } from "../lib/pending";
-import { saveVideo } from "../lib/storage";
+import { saveVideo, setSetting } from "../lib/storage";
 import { useTheme } from "../lib/theme";
 
 const STAGES = [
@@ -30,6 +30,8 @@ export default function Extract() {
   const [stage, setStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
   const started = useRef<number>(-1);
 
   // Work out what to extract from.
@@ -65,6 +67,7 @@ export default function Extract() {
     if (!job || started.current === attempt) return;
     started.current = attempt;
     setError(null);
+    setNeedsCode(false);
     setStage(0);
     const timer = setInterval(() => setStage((i) => Math.min(i + 1, STAGES.length - 1)), 4000);
     const run =
@@ -80,10 +83,45 @@ export default function Extract() {
         const id = await saveVideo(data);
         router.replace({ pathname: "/recipe/[id]", params: { id } });
       })
-      .catch((e: Error) => setError(e.message || "Something went wrong."))
+      .catch((e: Error) => {
+        if (e instanceof ApiError && e.status === 401) setNeedsCode(true);
+        setError(e.message || "Something went wrong.");
+      })
       .finally(() => clearInterval(timer));
     return () => clearInterval(timer);
   }, [job, attempt]);
+
+  const submitCode = async () => {
+    if (!code.trim()) return;
+    await setSetting("appToken", code.trim());
+    setCode("");
+    setAttempt((a) => a + 1);
+  };
+
+  if (needsCode) {
+    return (
+      <View style={s.center}>
+        <Text style={s.emoji}>🔒</Text>
+        <Text style={s.title}>Enter access code</Text>
+        <Text style={s.body}>This Recipe Taker server is private. You only need to enter the code once.</Text>
+        <TextInput
+          value={code}
+          onChangeText={setCode}
+          placeholder="Access code"
+          placeholderTextColor={t.muted}
+          style={s.input}
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          onSubmitEditing={submitCode}
+          returnKeyType="go"
+        />
+        <Pressable style={s.btn} onPress={submitCode}>
+          <Text style={s.btnText}>Continue</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (error) {
     return (
@@ -120,5 +158,17 @@ const styles = (t: ReturnType<typeof useTheme>) =>
     body: { fontSize: 15, color: t.muted, textAlign: "center", lineHeight: 21, maxWidth: 420 },
     btn: { backgroundColor: t.accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28, marginTop: 8 },
     btnText: { color: t.accentText, fontWeight: "700", fontSize: 16 },
+    input: {
+      width: "100%",
+      maxWidth: 360,
+      backgroundColor: t.card,
+      borderColor: t.border,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 16,
+      color: t.text,
+      textAlign: "center",
+    },
     link: { color: t.accent, fontSize: 15, fontWeight: "600", marginTop: 4 },
   });

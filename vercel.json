@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "buildCommand": "cd mobile && npm ci && npx expo export --platform web --output-dir ../public",
+  "functions": {
+    "backend/app/main.py": { "maxDuration": 300 }
+  },
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+}

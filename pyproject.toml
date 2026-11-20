@@ -1,0 +1,15 @@
+# Used by Vercel to run the backend (see vercel.json). Local dev uses backend/requirements.txt.
+[project]
+name = "recipe-taker"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.165.0",
+  "python-multipart==0.0.34",
+  "google-genai==3.6.1",
+  "pydantic==2.14.4",
+  "yt-dlp==2026.10.26",
+]
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"

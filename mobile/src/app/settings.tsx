@@ -24,7 +24,7 @@ export default function Settings() {
     await setSetting("appToken", token.trim());
     setStatus("Checking server…");
     try {
-      const r = await fetch(`${clean}/health`);
+      const r = await fetch(`${clean}/api/health`);
       setStatus(r.ok ? "Saved. Server is reachable ✓" : `Saved, but the server answered ${r.status}.`);
     } catch {
       setStatus("Saved, but the server can't be reached from this phone.");

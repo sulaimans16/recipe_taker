@@ -1,0 +1,9 @@
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+mobile/ios
+mobile/android
+mobile/dist
+mobile/.expo
+public

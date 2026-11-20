@@ -16,7 +16,11 @@ async function config() {
   return { url, headers };
 }
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  constructor(message: string, public status?: number) {
+    super(message);
+  }
+}
 
 async function handle(res: Response): Promise<ExtractResponse> {
   if (res.ok) return res.json();
@@ -25,7 +29,8 @@ async function handle(res: Response): Promise<ExtractResponse> {
     const body = await res.json();
     if (typeof body.detail === "string") detail = body.detail;
   } catch {}
-  throw new ApiError(detail);
+  if (res.status === 401) detail = "This server needs an access code.";
+  throw new ApiError(detail, res.status);
 }
 
 async function call(path: string, init: RequestInit): Promise<ExtractResponse> {
@@ -41,7 +46,7 @@ async function call(path: string, init: RequestInit): Promise<ExtractResponse> {
 
 /** Extract recipes from a link or from raw shared text containing a link. */
 export function extractFromLink(textOrUrl: string, refresh = false) {
-  return call(`/extract${refresh ? "?refresh=true" : ""}`, {
+  return call(`/api/extract${refresh ? "?refresh=true" : ""}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: textOrUrl }),
@@ -61,7 +66,7 @@ export function extractFromFile(video: LocalVideo, opts: { caption?: string; sou
   }
   if (opts.caption) form.append("caption", opts.caption);
   if (opts.sourceUrl) form.append("source_url", opts.sourceUrl);
-  return call("/extract/upload", { method: "POST", body: form });
+  return call("/api/extract/upload", { method: "POST", body: form });
 }
 
 /** Find the first http(s) link in arbitrary text. */

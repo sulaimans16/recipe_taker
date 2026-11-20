@@ -106,12 +106,14 @@ async def _run(fn, *args):
         raise HTTPException(status_code=502, detail=str(err))
 
 
-@app.get("/health")
+@app.get("/api/health")
+@app.get("/health", include_in_schema=False)
 def health() -> dict:
     return {"ok": True}
 
 
-@app.post("/extract", response_model=ExtractResponse, dependencies=[Depends(check_token)])
+@app.post("/api/extract", response_model=ExtractResponse, dependencies=[Depends(check_token)])
+@app.post("/extract", response_model=ExtractResponse, dependencies=[Depends(check_token)], include_in_schema=False)
 async def extract(req: ExtractRequest, refresh: bool = False) -> ExtractResponse:
     url = sources.extract_url(req.url or "") or sources.extract_url(req.text or "")
     if not url:
@@ -128,7 +130,8 @@ async def extract(req: ExtractRequest, refresh: bool = False) -> ExtractResponse
     return resp
 
 
-@app.post("/extract/upload", response_model=ExtractResponse, dependencies=[Depends(check_token)])
+@app.post("/api/extract/upload", response_model=ExtractResponse, dependencies=[Depends(check_token)])
+@app.post("/extract/upload", response_model=ExtractResponse, dependencies=[Depends(check_token)], include_in_schema=False)
 async def extract_upload(
     file: UploadFile = File(...),
     caption: Optional[str] = Form(default=None),
@@ -176,6 +179,8 @@ if (WEB_DIST / "index.html").exists():
 
     @app.get("/{path:path}", include_in_schema=False)
     def web_app(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
         candidate = (_web_root / path).resolve()
         if path and candidate.is_file() and _web_root in candidate.parents:
             headers = {"Cache-Control": "public, max-age=31536000, immutable"} if path.startswith("_expo/") else None
